@@ -1,7 +1,12 @@
 from enum import Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, HttpUrl
+
+
+class Size(str, Enum):
+    small = "small"
+    large = "large"
 
 
 class Image(BaseModel):
@@ -9,8 +14,8 @@ class Image(BaseModel):
     Image path for a Monster
     """
 
-    name: str = None
-    url: HttpUrl = None
+    name: str
+    url: HttpUrl
 
 
 class Action(BaseModel):
@@ -31,7 +36,7 @@ class Ailment(BaseModel):
     """
 
     name: str
-    actions: List[Action] = []
+    actions: List[Action]
 
 
 class Resistance(BaseModel):
@@ -40,7 +45,7 @@ class Resistance(BaseModel):
     """
 
     element: str
-    condition: str = None
+    condition: Optional[str] = None
 
 
 class Weakness(BaseModel):
@@ -50,7 +55,7 @@ class Weakness(BaseModel):
 
     element: str
     stars: int
-    condition: str = None
+    condition: Optional[str] = None
 
 
 class Monster(BaseModel):
@@ -61,6 +66,7 @@ class Monster(BaseModel):
     name: str
     description: str
     species: str
+    size: Size
     elements: List[str] = []
     weaknesses: List[Weakness] = []
     resistances: List[Resistance] = []

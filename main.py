@@ -58,6 +58,7 @@ async def get_all_monsters(name: str = None):
         - Query params: ?name= Monster name to search and return a single Monster
                         ?names= List of monster names to return a list of monsters, will take precendence over 'name' param
     """
+    query = monsters_db.select()
     if name:
         # Search for the Monster in the DB:
         monster = Monster(
@@ -70,43 +71,37 @@ async def get_all_monsters(name: str = None):
         monster_repr = monster.json()
         return json.loads(monster_repr)
 
-    return {"all_monsters": []}
-
-
-"""
-Need to protect this later so garbage isn't pushed to the db.
-Alternatively, we can have two databases, one that is read for the page, and another that is called 'updates.db',
-We can manually (cry) review entries in updates, and push them to monsters.db
-Or we can have pure chaos.
-"""
+    return await database.fetch_all(query)
 
 
 @app.post("/monsters/", response_model=Monster)
 async def create_monster(monster: Monster):
-    # First try to construct models from Monster values:
+    query = monsters_db.insert().values(
+        name=monster.name,
+        description=monster.description,
+        species=monster.species,
+        size=monster.size,
+        weaknesses=[
+            Weakness(
+                element=weakness.element,
+                stars=weakness.stars,
+                condition=getattr(weakness, "condition", ""),
+            )
+            for weakness in monster.weaknesses
+        ],
+        resistances=[
+            Resistance(
+                element=resistance.element,
+                condition=getattr(resistance, "condition", ""),
+            )
+            for resistance in monster.resistances
+        ],
+        images=[Image(name=image.name, url=image.url) for image in monster.images],
+        ailments=[
+            Ailment(name=ailment.name, actions=ailment.actions)
+            for ailment in monster.ailments
+        ],
+    )
 
-    # What does a POST request look like even?:
-    """
-    {
-        "name": "Diablos",
-        "description": "Big idiot",
-        "species": "flying wyvern",
-        "weaknesses": [{"element": "fire", "stars": 1, "conditions": "covered in gas"}],
-        "resistances": [{"element": "ice"}],
-        "images": [{"name": "big bad monster", "url": "google.com"}],
-        "ailments": [{"name": "Blastblight", "actions": ["nullbery", "dodge"]}]
-    }
-    """
-    # query = monsters_db.insert().values(
-    #     name=monster.name,
-    #     description=monster.description,
-    #     species=monster.species,
-    #     weaknesses=[
-    #         Weakness(element=monster_weakness.element, stars=monster_weakness.stars) for monster_weakness in monster.weaknesses
-    #     ],
-    #     resistances=[Resistance(element="water")],
-    #     images=[Image()]
-    #     ailments=[Ailment()]
-    # )
-    # last_record_id = await database.execute(query)
-    # return {**monster.dict(), "id": last_record_id}
+    last_record_id = await database.execute(query)
+    return {**monster.dict(), "id": last_record_id}
