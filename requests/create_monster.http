@@ -1,12 +1,36 @@
-POST localhost:8000/monsters HTTP/1.1
+POST localhost:8000/monsters
 content-type: application/json
 
 {
     "name": "Diablos",
     "description": "Big idiot",
     "species": "flying wyvern",
-    "weaknesses": [{"element": "fire", "stars": 1, "conditions": "covered in gas"}],
-    "resistances": [{"element": "ice"}],
-    "images": [{"name": "big bad monster", "url": "google.com"}],
-    "ailments": [{"name": "Blastblight", "actions": ["nullbery", "dodge"]}]
+	"elements": ["fire"],
+    "weaknesses": [
+    	{
+    		"element": "fire",
+    		"stars": 1,
+    		"conditions": "covered in gas"
+    	}
+    ],
+    "resistances": [
+    	{
+    		"element": "ice"
+    	}
+    ],
+    "images": [
+    	{
+    		"name": "big bad monster",
+    		"url": "https://www.google.com"
+    	}
+    ],
+    "ailments": [
+    	{
+    		"name": "Blastblight",
+    		"actions": [
+    			"nullbery",
+    			"dodge"
+    		]
+    	}],
+    "size": "large"
 }

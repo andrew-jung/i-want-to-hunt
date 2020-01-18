@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from pydantic import BaseModel, HttpUrl
 
@@ -18,25 +18,15 @@ class Image(BaseModel):
     url: HttpUrl
 
 
-class Action(BaseModel):
-    """
-    Model for an Action to resolve an Ailment
-
-    Examples: Dodge/roll, use nullbery, etc.
-    """
-
-    action: str
-
-
 class Ailment(BaseModel):
     """
-    Ailment caused by a Monster and returns a list of actions to resolve it (if applicable.)
+    Ailment caused by a Monster and returns a set of actions to resolve it (if applicable.)
 
     Examples: Blastblight
     """
 
     name: str
-    actions: List[Action]
+    actions: Set[str]
 
 
 class Resistance(BaseModel):
@@ -67,11 +57,11 @@ class Monster(BaseModel):
     description: str
     species: str
     size: Size
-    elements: List[str] = []
-    weaknesses: List[Weakness] = []
-    resistances: List[Resistance] = []
-    ailments: List[Ailment] = []
-    images: List[Image] = []
+    elements: Set[str] = None
+    weaknesses: List[Weakness] = None
+    resistances: List[Resistance] = None
+    ailments: List[Ailment] = None
+    images: List[Image] = None
 
 
 class Monsters(BaseModel):
@@ -79,4 +69,4 @@ class Monsters(BaseModel):
     List of Monsters
     """
 
-    monsters: List[Monster] = []
+    monsters: List[Monster] = None

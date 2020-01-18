@@ -26,6 +26,7 @@ monsters_db = sqlalchemy.Table(
     sqlalchemy.Column("resistances", sqlalchemy.String),
     sqlalchemy.Column("ailments", sqlalchemy.String),
     sqlalchemy.Column("images", sqlalchemy.String),
+    sqlalchemy.Column("size", sqlalchemy.String),
 )
 engine = sqlalchemy.create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False}
@@ -75,32 +76,37 @@ async def get_all_monsters(name: str = None):
 
 
 @app.post("/monsters/", response_model=Monster)
-async def create_monster(monster: Monster):
+async def create_monster(*, monster: Monster):
+    breakpoint()
+    weaknesses = [
+        Weakness(
+            element=weakness.element,
+            stars=weakness.stars,
+            condition=getattr(weakness, "condition", ""),
+        )
+        for weakness in monster.weaknesses
+    ]
+    resistances = [
+        Resistance(
+            element=resistance.element, condition=getattr(resistance, "condition", ""),
+        )
+        for resistance in monster.resistances
+    ]
+    images = [Image(name=image.name, url=image.url) for image in monster.images]
+    ailments = [
+        Ailment(name=ailment.name, actions=ailment.actions)
+        for ailment in monster.ailments
+    ]
+
     query = monsters_db.insert().values(
         name=monster.name,
         description=monster.description,
         species=monster.species,
-        size=monster.size,
-        weaknesses=[
-            Weakness(
-                element=weakness.element,
-                stars=weakness.stars,
-                condition=getattr(weakness, "condition", ""),
-            )
-            for weakness in monster.weaknesses
-        ],
-        resistances=[
-            Resistance(
-                element=resistance.element,
-                condition=getattr(resistance, "condition", ""),
-            )
-            for resistance in monster.resistances
-        ],
-        images=[Image(name=image.name, url=image.url) for image in monster.images],
-        ailments=[
-            Ailment(name=ailment.name, actions=ailment.actions)
-            for ailment in monster.ailments
-        ],
+        size=monster.size.name,
+        weaknesses=weaknesses,
+        resistances=resistances,
+        images=images,
+        ailments=ailments,
     )
 
     last_record_id = await database.execute(query)
