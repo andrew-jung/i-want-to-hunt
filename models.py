@@ -54,7 +54,6 @@ class Monster(BaseModel):
     """
 
     name: str
-    description: str
     species: str
     size: Size
     elements: Set[str] = None

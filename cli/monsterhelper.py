@@ -5,7 +5,7 @@ import httpx
 
 
 class MonsterMigrator:
-    IGNORED_KEYS = ["id", "locations", "rewards"]
+    IGNORED_KEYS = ["description", "id", "locations", "rewards"]
     API_URL = "http://localhost:8000/monsters"  # TODO: env?
 
     def create_monsters_from_file(self, filename=None):
@@ -20,9 +20,35 @@ class MonsterMigrator:
         for monster_dict in cleaned_monster_list:
             self._call_api(monster_dict)
 
+    def create_monster(self, name=None):
+        """
+        Prompt for:
+        - name: str, import string; string.capwords(name)
+        - species: str, lower()
+        - size: str ("small" or "large")
+        - elements: list of str, None
+        - weaknesses: list of dict {element:str, stars:int, condition:str[None]}
+        - resistances: list of dict {element: str, condition:str[None]}
+        - ailments: list of dicts {name:str, actions: list[str]}
+        - images: list of dicts {name: str, url: str}
+
+        {
+            "name": "",
+            "species": "",
+            "size": "",
+            "elements": [],
+            "weaknesses": [],
+            "resistances": [],
+            "ailments": [],
+            "images": []
+        }
+        """
+        data = {}
+
+        return self._call_api(data)
+
     def _call_api(self, data):
         data = json.dumps(data)
-        print(data)
         httpx.post(self.API_URL, data=data)
 
     def _clean_monster_json_list(self, monsters):

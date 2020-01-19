@@ -19,7 +19,6 @@ monsters_db = sqlalchemy.Table(
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("name", sqlalchemy.String),
-    sqlalchemy.Column("description", sqlalchemy.String),
     sqlalchemy.Column("species", sqlalchemy.String),
     sqlalchemy.Column("elements", sqlalchemy.String),
     sqlalchemy.Column("weaknesses", sqlalchemy.String),
@@ -33,7 +32,7 @@ engine = sqlalchemy.create_engine(
 )
 metadata.create_all(engine)
 
-app = FastAPI()
+app = FastAPI(docs_url=None)
 
 
 @app.on_event("startup")
@@ -55,6 +54,9 @@ CONVERT_KEYS = ["ailments", "elements", "images", "resistances", "weaknesses"]
 
 
 def _to_representation(monster):
+    """
+    Convert the Monster from SQLite back to JSON
+    """
     monster_dict = dict(monster)
     for attribute, value in monster_dict.copy().items():
         if attribute in CONVERT_KEYS:
@@ -126,7 +128,6 @@ async def create_monster(*, monster: Monster):
     elements = str([element for element in monster.elements if monster.elements])
     query = monsters_db.insert().values(
         name=monster.name,
-        description=monster.description,
         species=monster.species,
         size=monster.size.name,
         weaknesses=weaknesses,
@@ -138,6 +139,3 @@ async def create_monster(*, monster: Monster):
 
     last_record_id = await database.execute(query)
     return {**monster.dict(), "id": last_record_id}
-
-
-# TODO: PUT/PATCH + DELETE
