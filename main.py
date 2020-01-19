@@ -1,10 +1,9 @@
 import ast
 from typing import List
 
-import sqlite3
 import sqlalchemy
 from databases import Database
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 from models import Ailment, Image, Monster, Resistance, Weakness
 
@@ -76,7 +75,6 @@ async def get_all_monsters(name: str = None):
         query = query.where(monsters_db.columns.name == name)
         # TODO: Add a like filter, right now it's case-sensitive.
     results = await database.fetch_all(query)
-
     for idx, monster in enumerate(results):
         monster = _to_representation(monster)
         results[idx] = monster
@@ -126,20 +124,17 @@ async def create_monster(*, monster: Monster):
         ]
     )
     elements = str([element for element in monster.elements if monster.elements])
-    try:
-        query = monsters_db.insert().values(
-            name=monster.name,
-            description=monster.description,
-            species=monster.species,
-            size=monster.size.name,
-            weaknesses=weaknesses,
-            resistances=resistances,
-            images=images,
-            ailments=ailments,
-            elements=elements,
-        )
-    except (HTTPException, sqlite3.IntegrityError):
-        return {"API Error: Something went wrong!"}
+    query = monsters_db.insert().values(
+        name=monster.name,
+        description=monster.description,
+        species=monster.species,
+        size=monster.size.name,
+        weaknesses=weaknesses,
+        resistances=resistances,
+        images=images,
+        ailments=ailments,
+        elements=elements,
+    )
 
     last_record_id = await database.execute(query)
     return {**monster.dict(), "id": last_record_id}

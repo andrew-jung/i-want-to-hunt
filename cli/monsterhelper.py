@@ -1,69 +1,12 @@
 import json
 
 import fire
-
-"""
-Data object from mhw-db:
-{
-    "id": 2,
-    "name": "Jagras",
-    "type": "small",
-    "species": "fanged wyvern",
-    "description": "Members of the Great Jagras pack, these smaller monsters will flee upon seeing one of their own perish. They're also known for ambushing larger monsters at a moment's notice.",
-    "elements": [],
-    "ailments": [],
-    "locations": [{ "id": 1, "name": "Ancient Forest", "zoneCount": 17 }],
-    "resistances": [],
-    "weaknesses": [
-        { "element": "fire", "stars": 1, "condition": null },
-        { "element": "thunder", "stars": 1, "condition": null }
-    ],
-    "rewards": []
-}
-
-API expected POST request:
-
-{
-    "name": "Bob",
-    "description": "Big idiot",
-    "species": "flying wyvern",
-	"elements": ["fire"],
-    "weaknesses": [
-    	{
-    		"element": "fire",
-    		"stars": 1,
-    		"condition": "covered in gas"
-    	}
-    ],
-    "resistances": [
-    	{
-    		"element": "ice",
-            "condition": none
-    	}
-    ],
-    "images": [
-    	{
-    		"name": "big bad monster",
-    		"url": "https://www.google.com"
-    	}
-    ],
-    "ailments": [
-    	{
-    		"name": "Blastblight",
-    		"actions": [
-    			"roll", "nullberry"
-    		]
-    	}
-    ],
-    "size": "large"
-}
-
-"""
+import httpx
 
 
 class MonsterMigrator:
     IGNORED_KEYS = ["id", "locations", "rewards"]
-    API_URL = "localhost:8000/monsters"  # TODO: env?
+    API_URL = "http://localhost:8000/monsters"  # TODO: env?
 
     def create_monsters_from_file(self, filename=None):
         if not filename:
@@ -72,13 +15,15 @@ class MonsterMigrator:
             data = json.load(json_file)
 
         cleaned_monster_list = self._clean_monster_json_list(data)
+
         # Call to our beloved API to create them:
         for monster_dict in cleaned_monster_list:
-            self.call_api(monster_dict)
+            self._call_api(monster_dict)
 
-    async def call_api(self, data):
-        async with httpx.AsyncClient() as client:
-            await client.post(self.API_URL, data=monster_dict)
+    def _call_api(self, data):
+        data = json.dumps(data)
+        print(data)
+        httpx.post(self.API_URL, data=data)
 
     def _clean_monster_json_list(self, monsters):
         cleaned_list = []
@@ -87,10 +32,26 @@ class MonsterMigrator:
             for attribute, value in monster.copy().items():
                 if attribute in self.IGNORED_KEYS:
                     monster.pop(attribute, None)
+                if attribute == "type":
+                    monster["size"] = monster.pop(attribute, None)
+                if attribute == "ailments":
+                    for i, ailment in enumerate(value):
+                        ailment = self._deconstruct_ailment(ailment)
+                        if ailment:
+                            monster[attribute][i] = ailment
             cleaned_list.append(monster)
+
         return cleaned_list
 
-    # TODO: Add other CLI helpers, then extract CLI things somewhere else.
+    def _deconstruct_ailment(self, ailment):
+        """
+        If there is an ailment, we only care abouts its name and recovery actions
+        """
+        formatted_ailment = {
+            "name": ailment.get("name"),
+            "actions": ailment.get("recovery", {}).get("actions", []),
+        }
+        return formatted_ailment
 
 
 if __name__ == "__main__":

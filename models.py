@@ -26,7 +26,7 @@ class Ailment(BaseModel):
     """
 
     name: str
-    actions: Set[str]
+    actions: List[Optional[str]] = None
 
 
 class Resistance(BaseModel):
@@ -61,7 +61,9 @@ class Monster(BaseModel):
     weaknesses: List[Weakness] = None
     resistances: List[Resistance] = None
     ailments: List[Ailment] = None
-    images: List[Image] = None
+    images: List[Image] = [
+        Image(name="placeholder", url="https://placekitten.com/200/300")
+    ]
 
 
 class Monsters(BaseModel):
