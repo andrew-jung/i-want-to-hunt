@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Optional, Set
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 
 class Size(str, Enum):
@@ -15,7 +15,7 @@ class Image(BaseModel):
     """
 
     name: str
-    url: HttpUrl
+    url: str
 
 
 class Ailment(BaseModel):

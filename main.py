@@ -1,9 +1,10 @@
-import json
+import ast
 from typing import List
 
+import sqlite3
 import sqlalchemy
 from databases import Database
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from models import Ailment, Image, Monster, Resistance, Weakness
 
@@ -51,63 +52,97 @@ async def read_root():
     return "Nothing to see here..."
 
 
+CONVERT_KEYS = ["ailments", "elements", "images", "resistances", "weaknesses"]
+
+
+def _to_representation(monster):
+    monster_dict = dict(monster)
+    for attribute, value in monster_dict.copy().items():
+        if attribute in CONVERT_KEYS:
+            value = ast.literal_eval(value)
+            monster_dict[attribute] = value
+    return monster_dict
+
+
 @app.get("/monsters/")
 async def get_all_monsters(name: str = None):
     """
-    Route for returning monsters:
-        - By default, return all monsters
-        - Query params: ?name= Monster name to search and return a single Monster
-                        ?names= List of monster names to return a list of monsters, will take precendence over 'name' param
+    Endpoint for returning monsters:
+        - Default: return all monsters
+        - Query param (name): Monster name to search and return a single Monster
     """
     query = monsters_db.select()
     if name:
-        # Search for the Monster in the DB:
-        monster = Monster(
-            name=name,
-            description="Test description",
-            species="Dragon",
-            weaknesses=[Weakness(element="fire", stars=1)],
-            resistances=[Resistance(element="water")],
-        )
-        monster_repr = monster.json()
-        return json.loads(monster_repr)
+        query = query.where(monsters_db.columns.name == name)
+        # TODO: Add a like filter, right now it's case-sensitive.
+    results = await database.fetch_all(query)
 
-    return await database.fetch_all(query)
+    for idx, monster in enumerate(results):
+        monster = _to_representation(monster)
+        results[idx] = monster
+    return {"monsters": results}
 
 
 @app.post("/monsters/", response_model=Monster)
 async def create_monster(*, monster: Monster):
-    breakpoint()
-    weaknesses = [
-        Weakness(
-            element=weakness.element,
-            stars=weakness.stars,
-            condition=getattr(weakness, "condition", ""),
-        )
-        for weakness in monster.weaknesses
-    ]
-    resistances = [
-        Resistance(
-            element=resistance.element, condition=getattr(resistance, "condition", ""),
-        )
-        for resistance in monster.resistances
-    ]
-    images = [Image(name=image.name, url=image.url) for image in monster.images]
-    ailments = [
-        Ailment(name=ailment.name, actions=ailment.actions)
-        for ailment in monster.ailments
-    ]
+    """
+    Endpoint to handle Monster creation
+    """
+    query = None
 
-    query = monsters_db.insert().values(
-        name=monster.name,
-        description=monster.description,
-        species=monster.species,
-        size=monster.size.name,
-        weaknesses=weaknesses,
-        resistances=resistances,
-        images=images,
-        ailments=ailments,
+    weaknesses = str(
+        [
+            Weakness(
+                element=weakness.element,
+                stars=weakness.stars,
+                condition=getattr(weakness, "condition", ""),
+            ).dict()
+            for weakness in monster.weaknesses
+            if monster.weaknesses
+        ]
     )
+    resistances = str(
+        [
+            Resistance(
+                element=resistance.element,
+                condition=getattr(resistance, "condition", ""),
+            ).dict()
+            for resistance in monster.resistances
+            if monster.resistances
+        ]
+    )
+    images = str(
+        [
+            Image(name=image.name, url=image.url).dict()
+            for image in monster.images
+            if monster.images
+        ]
+    )
+    ailments = str(
+        [
+            Ailment(name=ailment.name, actions=ailment.actions).dict()
+            for ailment in monster.ailments
+            if monster.ailments
+        ]
+    )
+    elements = str([element for element in monster.elements if monster.elements])
+    try:
+        query = monsters_db.insert().values(
+            name=monster.name,
+            description=monster.description,
+            species=monster.species,
+            size=monster.size.name,
+            weaknesses=weaknesses,
+            resistances=resistances,
+            images=images,
+            ailments=ailments,
+            elements=elements,
+        )
+    except (HTTPException, sqlite3.IntegrityError):
+        return {"API Error: Something went wrong!"}
 
     last_record_id = await database.execute(query)
     return {**monster.dict(), "id": last_record_id}
+
+
+# TODO: PUT/PATCH + DELETE

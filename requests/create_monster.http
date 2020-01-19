@@ -10,7 +10,7 @@ content-type: application/json
     	{
     		"element": "fire",
     		"stars": 1,
-    		"conditions": "covered in gas"
+    		"condition": "covered in gas"
     	}
     ],
     "resistances": [
